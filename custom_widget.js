@@ -476,12 +476,12 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
     }
   }
 
-  newChatBtn.addEventListener('click', () => {
-  // permanently disable welcome after first interaction
+newChatBtn.addEventListener('click', () => {
   welcomeDisabled = true;
 
+  // 🔥 permanently remove welcome from DOM
   if (newConversationScreen) {
-    newConversationScreen.style.display = 'none';
+    newConversationScreen.remove();
   }
 
   if (!chatContainer.classList.contains('open')) {
