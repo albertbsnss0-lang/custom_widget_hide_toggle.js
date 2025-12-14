@@ -1,15 +1,10 @@
-// iClean AZ custom chat widget script (FULLY FIXED + PROGRESS STEPS)
-// Fixes already included:
+// iClean AZ custom chat widget script (FULLY FIXED)
+// Fixes:
 // - Launcher stays bottom-right
 // - "Preparing..." + Welcome appear ONLY on first open (per page load)
 // - After clicking "Send us a message" (or sending first message), NO white screen
 // - Welcome/loader never appear again after chat starts
 // - Closing/reopening preserves conversation (only refresh resets)
-//
-// Added now:
-// - Progress indicator (Step X of 5) shown ONLY after chat starts
-// - Progress advances when the bot asks the next question (heuristic based on "?")
-// - Progress does NOT reset on close/open; resets only on page refresh
 (function () {
   const styles = `
     .n8n-chat-widget {
@@ -161,16 +156,6 @@
       display: flex;
     }
 
-    /* Progress bar */
-    .n8n-chat-widget .chat-progress {
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 500;
-      color: #64748b;
-      background: #f8fafc;
-      border-bottom: 1px solid #e5e7eb;
-    }
-
     .n8n-chat-widget .chat-messages {
       flex: 1;
       overflow-y: auto;
@@ -313,11 +298,6 @@
   let hasOpenedOnce = false; // welcome/loader only on first open
   let chatStarted = false;   // once true, never show welcome/loader again
 
-  // Progress state (persists until refresh)
-  let currentStep = 1;
-  const TOTAL_STEPS = 5;
-  let lastCountedBotText = ''; // prevents double-counting same bot message
-
   const widgetContainer = document.createElement('div');
   widgetContainer.className = 'n8n-chat-widget';
   widgetContainer.style.setProperty('--n8n-chat-primary-color', config.style.primaryColor);
@@ -359,13 +339,7 @@
         </div>
         <button class="close-button">×</button>
       </div>
-
-      <div class="chat-progress" style="display:none;">
-        Step <span class="progress-current">1</span> of <span class="progress-total">5</span>
-      </div>
-
       <div class="chat-messages"></div>
-
       <div class="chat-input">
         <textarea placeholder="Type your message here..." rows="1"></textarea>
         <button type="submit">Send</button>
@@ -399,13 +373,6 @@
   const messagesContainer = chatContainer.querySelector('.chat-messages');
   const textarea = chatContainer.querySelector('textarea');
   const sendButton = chatContainer.querySelector('button[type="submit"]');
-
-  const progressBar = chatContainer.querySelector('.chat-progress');
-  const progressCurrentEl = chatContainer.querySelector('.progress-current');
-  const progressTotalEl = chatContainer.querySelector('.progress-total');
-
-  if (progressTotalEl) progressTotalEl.textContent = String(TOTAL_STEPS);
-  if (progressCurrentEl) progressCurrentEl.textContent = String(currentStep);
 
   // Loader element
   const welcomeLoader = document.createElement('div');
@@ -450,50 +417,20 @@
   observer.observe(messagesContainer, { childList: true });
 
   function activateChatUI() {
+    // Ensure chat UI is visible
     chatInterface.classList.add('active');
-    // Progress only after chat starts
-    if (chatStarted && progressBar) progressBar.style.display = 'block';
   }
 
   function removeWelcomeForever() {
+    // Stop timer
     if (welcomeTimer) {
       clearTimeout(welcomeTimer);
       welcomeTimer = null;
     }
+    // Remove welcome elements
     if (newConversationScreen && newConversationScreen.parentElement) newConversationScreen.remove();
     if (welcomeLoader && welcomeLoader.parentElement) welcomeLoader.remove();
     if (welcomeHeader && welcomeHeader.parentElement) welcomeHeader.remove();
-  }
-
-  function setProgress(step) {
-    const clamped = Math.max(1, Math.min(TOTAL_STEPS, step));
-    currentStep = clamped;
-    if (progressCurrentEl) progressCurrentEl.textContent = String(currentStep);
-    if (progressTotalEl) progressTotalEl.textContent = String(TOTAL_STEPS);
-  }
-
-  // Heuristic: increment when bot asks a new question (contains "?")
-  function maybeAdvanceProgressFromBot(botText) {
-    if (!chatStarted) return;
-    if (!botText || typeof botText !== 'string') return;
-
-    const trimmed = botText.trim();
-    if (!trimmed) return;
-
-    // prevent counting the exact same bot text twice
-    if (trimmed === lastCountedBotText) return;
-
-    const looksLikeQuestion = trimmed.includes('?');
-    if (!looksLikeQuestion) return;
-
-    // Count it
-    lastCountedBotText = trimmed;
-
-    // Step 1 is the first question; subsequent questions advance
-    // If we're already at 1, next question makes it 2, etc.
-    if (currentStep < TOTAL_STEPS) {
-      setProgress(currentStep + 1);
-    }
   }
 
   async function startNewConversationIfNeeded() {
@@ -505,10 +442,6 @@
 
     currentSessionId = generateUUID();
     activateChatUI();
-
-    // Reset progress for a fresh page-load session
-    setProgress(1);
-    lastCountedBotText = '';
 
     const payload = [
       {
@@ -528,19 +461,11 @@
 
       const responseData = await response.json();
 
-      const botText = Array.isArray(responseData) ? responseData[0].output : responseData.output;
-
       const botMsg = document.createElement('div');
       botMsg.className = 'chat-message bot';
-      botMsg.textContent = botText;
+      botMsg.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
       messagesContainer.appendChild(botMsg);
       scrollToBottom();
-
-      // First bot output usually contains the first question → keep it as Step 1 (no increment yet)
-      // We only "arm" the lastCountedBotText so the next bot question advances to Step 2.
-      if (typeof botText === 'string' && botText.includes('?')) {
-        lastCountedBotText = botText.trim();
-      }
     } catch (err) {
       console.error('Error starting conversation:', err);
     }
@@ -581,18 +506,11 @@
         messagesContainer.removeChild(typingIndicator);
       }
 
-      const botText = Array.isArray(data) ? data[0].output : data.output;
-
       const botMsg = document.createElement('div');
       botMsg.className = 'chat-message bot';
-      botMsg.textContent = botText;
+      botMsg.textContent = Array.isArray(data) ? data[0].output : data.output;
       messagesContainer.appendChild(botMsg);
       scrollToBottom();
-
-      // Advance progress when bot asks next question
-      if (typeof botText === 'string') {
-        maybeAdvanceProgressFromBot(botText);
-      }
     } catch (err) {
       console.error('Error sending message:', err);
       if (typingIndicator.parentElement) {
@@ -606,10 +524,6 @@
     chatStarted = true;
     removeWelcomeForever();
     activateChatUI();
-
-    // Show progress now that chat started
-    if (progressBar) progressBar.style.display = 'block';
-    setProgress(1);
 
     if (!chatContainer.classList.contains('open')) {
       chatContainer.classList.add('open');
@@ -627,9 +541,6 @@
       chatStarted = true;
       removeWelcomeForever();
       activateChatUI();
-
-      if (progressBar) progressBar.style.display = 'block';
-      setProgress(1);
     }
 
     await sendMessage(message);
@@ -648,9 +559,6 @@
         chatStarted = true;
         removeWelcomeForever();
         activateChatUI();
-
-        if (progressBar) progressBar.style.display = 'block';
-        setProgress(1);
       }
 
       await sendMessage(message);
@@ -670,7 +578,6 @@
     // If chat already started, ensure chat UI is active and never show welcome again
     if (chatStarted) {
       activateChatUI();
-      if (progressBar) progressBar.style.display = 'block';
       return;
     }
 
@@ -688,6 +595,7 @@
       if (welcomeTimer) clearTimeout(welcomeTimer);
 
       welcomeTimer = setTimeout(() => {
+        // If chat started during timer, do nothing
         if (chatStarted) return;
 
         // hide loader, show welcome
@@ -696,7 +604,8 @@
         if (newConversationScreen) newConversationScreen.style.display = 'block';
       }, 3000);
     } else {
-      // After first open, do NOT show welcome again
+      // After first open, do NOT show welcome again (your requirement)
+      // Ensure loader hidden
       welcomeLoader.style.display = 'none';
       if (welcomeHeader) welcomeHeader.style.display = 'none';
       if (newConversationScreen) newConversationScreen.style.display = 'none';
