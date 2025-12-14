@@ -481,17 +481,15 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
   }
 
 newChatBtn.addEventListener('click', () => {
-  // mark chat as started forever (until refresh)
   chatStarted = true;
 
-  // stop any pending welcome timer
   if (welcomeTimer) clearTimeout(welcomeTimer);
-
-  // permanently remove welcome + loader
   if (newConversationScreen) newConversationScreen.remove();
   if (welcomeLoader) welcomeLoader.remove();
 
-  // ensure chat is open
+  // SHOW chat UI (this fixes the white screen)
+  chatInterface.style.display = 'flex';
+
   if (!chatContainer.classList.contains('open')) {
     chatContainer.classList.add('open');
   }
@@ -504,17 +502,17 @@ newChatBtn.addEventListener('click', () => {
   if (message) {
 
     // first real interaction
-    if (!chatStarted) {
-      chatStarted = true;
+   // first real interaction
+if (!chatStarted) {
+  chatStarted = true;
 
-      if (welcomeTimer) clearTimeout(welcomeTimer);
-      if (newConversationScreen) newConversationScreen.remove();
-      if (welcomeLoader) welcomeLoader.remove();
-    }
+  if (welcomeTimer) clearTimeout(welcomeTimer);
+  if (newConversationScreen) newConversationScreen.remove();
+  if (welcomeLoader) welcomeLoader.remove();
 
-    sendMessage(message);
-    textarea.value = '';
-  }
+  // SHOW the chat UI (fixes white screen)
+  chatInterface.style.display = 'flex';
+}
 });
  textarea.addEventListener('keypress', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
