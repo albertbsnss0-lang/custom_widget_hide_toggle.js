@@ -513,9 +513,14 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
   }
 });
 
-  chatContainer.querySelectorAll('.close-button').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      chatContainer.classList.remove('open');
-    });
+ chatContainer.querySelectorAll('.close-button').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    chatContainer.classList.remove('open');
+
+    // reset welcome delay state
+    welcomeLoader.style.display = 'none';
+    if (newConversationScreen) newConversationScreen.style.display = 'none';
+    if (welcomeTimer) clearTimeout(welcomeTimer);
   });
+});
 })();
