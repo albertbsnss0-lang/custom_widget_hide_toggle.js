@@ -475,7 +475,15 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
     }
   }
 
-  newChatBtn.addEventListener('click', startNewConversation);
+  newChatBtn.addEventListener('click', () => {
+  // ensure chat is open
+  if (!chatContainer.classList.contains('open')) {
+    chatContainer.classList.add('open');
+  }
+
+  // start conversation deterministically
+  startNewConversation();
+});
   sendButton.addEventListener('click', () => {
     const message = textarea.value.trim();
     if (message) {
