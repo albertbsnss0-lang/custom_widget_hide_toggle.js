@@ -365,6 +365,16 @@
   document.body.appendChild(widgetContainer);
 
   const newChatBtn = chatContainer.querySelector('.new-chat-btn');
+  const newConversationScreen = chatContainer.querySelector('.new-conversation');
+
+if (newConversationScreen) {
+  newConversationScreen.style.display = 'none';
+
+  setTimeout(() => {
+    newConversationScreen.style.display = 'block';
+  }, 3000);
+}
+
   const chatInterface = chatContainer.querySelector('.chat-interface');
   const messagesContainer = chatContainer.querySelector('.chat-messages');
   const textarea = chatContainer.querySelector('textarea');
