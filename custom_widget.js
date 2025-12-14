@@ -233,7 +233,6 @@
       gap: 10px;
       box-shadow: 0 10px 30px rgba(11, 31, 59, 0.35);
       z-index: 1000;
-      position: relative;
       animation: launcherPulse 12s infinite;
     }
     @media (max-width: 600px) {
