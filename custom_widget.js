@@ -511,7 +511,14 @@ if (!chatStarted) {
   if (welcomeLoader) welcomeLoader.remove();
 
   // SHOW the chat UI (fixes white screen)
+  console.log('chatInterface:', chatInterface);
+
+if (chatInterface) {
   chatInterface.style.display = 'flex';
+} else {
+  console.error('❌ chatInterface is NULL');
+}
+
 }
 });
  textarea.addEventListener('keypress', (e) => {
