@@ -297,6 +297,7 @@
   window.CustomIcleanWidgetLoaded = true;
 
   let currentSessionId = '';
+  let welcomeTimer = null;
 
   const widgetContainer = document.createElement('div');
   widgetContainer.className = 'n8n-chat-widget';
@@ -364,21 +365,16 @@
   widgetContainer.appendChild(toggleButton);
   document.body.appendChild(widgetContainer);
 
-  const newChatBtn = chatContainer.querySelector('.new-chat-btn');
-  const newConversationScreen = chatContainer.querySelector('.new-conversation');
+const newChatBtn = chatContainer.querySelector('.new-chat-btn');
 
-if (newConversationScreen) {
-  newConversationScreen.style.display = 'none';
+const newConversationScreen = chatContainer.querySelector('.new-conversation');
+if (newConversationScreen) newConversationScreen.style.display = 'none';
 
-  setTimeout(() => {
-    newConversationScreen.style.display = 'block';
-  }, 3000);
-}
+const chatInterface = chatContainer.querySelector('.chat-interface');
+const messagesContainer = chatContainer.querySelector('.chat-messages');
+const textarea = chatContainer.querySelector('textarea');
+const sendButton = chatContainer.querySelector('button[type="submit"]');
 
-  const chatInterface = chatContainer.querySelector('.chat-interface');
-  const messagesContainer = chatContainer.querySelector('.chat-messages');
-  const textarea = chatContainer.querySelector('textarea');
-  const sendButton = chatContainer.querySelector('button[type="submit"]');
 
   function generateUUID() {
     return crypto.randomUUID();
@@ -486,8 +482,23 @@ if (newConversationScreen) {
     }
   });
   toggleButton.addEventListener('click', () => {
-    chatContainer.classList.toggle('open');
-  });
+  const isOpening = !chatContainer.classList.contains('open');
+
+  chatContainer.classList.toggle('open');
+
+  // Run welcome delay ONLY when opening
+  if (isOpening && newConversationScreen) {
+    // reset state
+    newConversationScreen.style.display = 'none';
+
+    if (welcomeTimer) clearTimeout(welcomeTimer);
+
+    welcomeTimer = setTimeout(() => {
+      newConversationScreen.style.display = 'block';
+    }, 3000);
+  }
+});
+
   chatContainer.querySelectorAll('.close-button').forEach((btn) => {
     btn.addEventListener('click', () => {
       chatContainer.classList.remove('open');
