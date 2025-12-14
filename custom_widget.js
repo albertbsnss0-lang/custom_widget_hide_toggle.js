@@ -297,6 +297,7 @@
   window.CustomIcleanWidgetLoaded = true;
 
   let currentSessionId = '';
+  let welcomeDisabled = false;
   let welcomeTimer = null;
 
   const widgetContainer = document.createElement('div');
@@ -476,12 +477,17 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
   }
 
   newChatBtn.addEventListener('click', () => {
-  // ensure chat is open
+  // permanently disable welcome after first interaction
+  welcomeDisabled = true;
+
+  if (newConversationScreen) {
+    newConversationScreen.style.display = 'none';
+  }
+
   if (!chatContainer.classList.contains('open')) {
     chatContainer.classList.add('open');
   }
 
-  // start conversation deterministically
   startNewConversation();
 });
   sendButton.addEventListener('click', () => {
@@ -507,7 +513,7 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
   chatContainer.classList.toggle('open');
 
   // Run ONLY when opening
-  if (isOpening && newConversationScreen) {
+ if (isOpening && newConversationScreen && !welcomeDisabled) {
     // reset everything
     newConversationScreen.style.display = 'none';
     welcomeLoader.style.display = 'block';
