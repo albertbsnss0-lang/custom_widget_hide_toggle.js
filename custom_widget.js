@@ -368,6 +368,18 @@
 const newChatBtn = chatContainer.querySelector('.new-chat-btn');
 
 const newConversationScreen = chatContainer.querySelector('.new-conversation');
+
+const welcomeLoader = document.createElement('div');
+welcomeLoader.style.textAlign = 'center';
+welcomeLoader.style.padding = '40px 20px';
+welcomeLoader.style.color = '#040559';
+welcomeLoader.style.fontSize = '16px';
+welcomeLoader.style.fontWeight = '500';
+welcomeLoader.textContent = 'Preparing your assistant…';
+
+chatContainer.insertBefore(welcomeLoader, newConversationScreen);
+welcomeLoader.style.display = 'none';
+
 if (newConversationScreen) newConversationScreen.style.display = 'none';
 
 const chatInterface = chatContainer.querySelector('.chat-interface');
@@ -486,14 +498,16 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
 
   chatContainer.classList.toggle('open');
 
-  // Run welcome delay ONLY when opening
+  // Run ONLY when opening
   if (isOpening && newConversationScreen) {
-    // reset state
+    // reset everything
     newConversationScreen.style.display = 'none';
+    welcomeLoader.style.display = 'block';
 
     if (welcomeTimer) clearTimeout(welcomeTimer);
 
     welcomeTimer = setTimeout(() => {
+      welcomeLoader.style.display = 'none';
       newConversationScreen.style.display = 'block';
     }, 3000);
   }
