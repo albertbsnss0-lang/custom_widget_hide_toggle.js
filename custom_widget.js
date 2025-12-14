@@ -1,6 +1,6 @@
-// iClean AZ custom chat widget script (hide toggle on open)
-// This script builds on the auto‑scroll version by adding a CSS rule to
-// automatically hide the “Get a Free Quote” launcher when the chat window is open.
+// iClean AZ custom chat widget script (final version: custom initialization)
+// This script ensures that the custom widget always runs even if another
+// n8n chat widget script has already set `window.N8NChatWidgetInitialized`.
 (function () {
   const styles = `
     .n8n-chat-widget {
@@ -293,8 +293,9 @@
     style: { ...defaultConfig.style, ...window.ChatWidgetConfig.style }
   } : defaultConfig;
 
-  if (window.N8NChatWidgetInitialized) return;
-  window.N8NChatWidgetInitialized = true;
+  // Use a custom flag to prevent duplicate initialization
+  if (window.CustomIcleanWidgetLoaded) return;
+  window.CustomIcleanWidgetLoaded = true;
 
   let currentSessionId = '';
 
@@ -347,6 +348,7 @@
       <div class="chat-footer"></div>
     </div>
   `;
+
   chatContainer.innerHTML = newConversationHTML + chatInterfaceHTML;
 
   const toggleButton = document.createElement('button');
