@@ -297,7 +297,6 @@
   window.CustomIcleanWidgetLoaded = true;
 
   let currentSessionId = '';
-  let welcomeTimer = null;
 
   const widgetContainer = document.createElement('div');
   widgetContainer.className = 'n8n-chat-widget';
@@ -365,28 +364,11 @@
   widgetContainer.appendChild(toggleButton);
   document.body.appendChild(widgetContainer);
 
-const newChatBtn = chatContainer.querySelector('.new-chat-btn');
-
-const newConversationScreen = chatContainer.querySelector('.new-conversation');
-
-const welcomeLoader = document.createElement('div');
-welcomeLoader.style.textAlign = 'center';
-welcomeLoader.style.padding = '40px 20px';
-welcomeLoader.style.color = '#040559';
-welcomeLoader.style.fontSize = '16px';
-welcomeLoader.style.fontWeight = '500';
-welcomeLoader.textContent = 'Preparing your assistant…';
-
-chatContainer.insertBefore(welcomeLoader, newConversationScreen);
-welcomeLoader.style.display = 'none';
-
-if (newConversationScreen) newConversationScreen.style.display = 'none';
-
-const chatInterface = chatContainer.querySelector('.chat-interface');
-const messagesContainer = chatContainer.querySelector('.chat-messages');
-const textarea = chatContainer.querySelector('textarea');
-const sendButton = chatContainer.querySelector('button[type="submit"]');
-
+  const newChatBtn = chatContainer.querySelector('.new-chat-btn');
+  const chatInterface = chatContainer.querySelector('.chat-interface');
+  const messagesContainer = chatContainer.querySelector('.chat-messages');
+  const textarea = chatContainer.querySelector('textarea');
+  const sendButton = chatContainer.querySelector('button[type="submit"]');
 
   function generateUUID() {
     return crypto.randomUUID();
@@ -494,28 +476,11 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
     }
   });
   toggleButton.addEventListener('click', () => {
-  const isOpening = !chatContainer.classList.contains('open');
-
-  chatContainer.classList.toggle('open');
-
-  // Run ONLY when opening
-  if (isOpening && newConversationScreen) {
-    // reset everything
-    newConversationScreen.style.display = 'none';
-    welcomeLoader.style.display = 'block';
-
-    if (welcomeTimer) clearTimeout(welcomeTimer);
-
-    welcomeTimer = setTimeout(() => {
-      welcomeLoader.style.display = 'none';
-      newConversationScreen.style.display = 'block';
-    }, 3000);
-  }
-});
-
- chatContainer.querySelectorAll('.close-button').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    chatContainer.classList.remove('open');
+    chatContainer.classList.toggle('open');
   });
-});
+  chatContainer.querySelectorAll('.close-button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      chatContainer.classList.remove('open');
+    });
+  });
 })();
