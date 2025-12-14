@@ -296,9 +296,11 @@
   if (window.CustomIcleanWidgetLoaded) return;
   window.CustomIcleanWidgetLoaded = true;
 
-  let currentSessionId = '';
-  let welcomeDisabled = false;
-  let welcomeTimer = null;
+let currentSessionId = '';
+let welcomeTimer = null;
+
+let hasOpenedOnce = false; // first open of widget per page load
+let chatStarted = false;   // user started chat (messages should show, welcome never again)
 
   const widgetContainer = document.createElement('div');
   widgetContainer.className = 'n8n-chat-widget';
@@ -376,12 +378,14 @@ welcomeLoader.style.padding = '40px 20px';
 welcomeLoader.style.color = '#040559';
 welcomeLoader.style.fontSize = '16px';
 welcomeLoader.style.fontWeight = '500';
-welcomeLoader.textContent = 'Preparing your assistant…';
+welcomeLoader.textContent = 'Preparing your assistant...';
 
 chatContainer.insertBefore(welcomeLoader, newConversationScreen);
-welcomeLoader.style.display = 'none';
 
+// hide loader and welcome by default
+welcomeLoader.style.display = 'none';
 if (newConversationScreen) newConversationScreen.style.display = 'none';
+
 
 const chatInterface = chatContainer.querySelector('.chat-interface');
 const messagesContainer = chatContainer.querySelector('.chat-messages');
@@ -477,52 +481,89 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
   }
 
 newChatBtn.addEventListener('click', () => {
-  welcomeDisabled = true;
+  // mark chat as started forever (until refresh)
+  chatStarted = true;
 
-  // 🔥 permanently remove welcome from DOM
-  if (newConversationScreen) {
-    newConversationScreen.remove();
-  }
+  // stop any pending welcome timer
+  if (welcomeTimer) clearTimeout(welcomeTimer);
 
+  // permanently remove welcome + loader
+  if (newConversationScreen) newConversationScreen.remove();
+  if (welcomeLoader) welcomeLoader.remove();
+
+  // ensure chat is open
   if (!chatContainer.classList.contains('open')) {
     chatContainer.classList.add('open');
   }
 
   startNewConversation();
 });
+
   sendButton.addEventListener('click', () => {
+  const message = textarea.value.trim();
+  if (message) {
+
+    // first real interaction
+    if (!chatStarted) {
+      chatStarted = true;
+
+      if (welcomeTimer) clearTimeout(welcomeTimer);
+      if (newConversationScreen) newConversationScreen.remove();
+      if (welcomeLoader) welcomeLoader.remove();
+    }
+
+    sendMessage(message);
+    textarea.value = '';
+  }
+});
+ textarea.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+
     const message = textarea.value.trim();
     if (message) {
+
+      // first real interaction via Enter
+      if (!chatStarted) {
+        chatStarted = true;
+
+        if (welcomeTimer) clearTimeout(welcomeTimer);
+        if (newConversationScreen) newConversationScreen.remove();
+        if (welcomeLoader) welcomeLoader.remove();
+      }
+
       sendMessage(message);
       textarea.value = '';
     }
-  });
-  textarea.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      const message = textarea.value.trim();
-      if (message) {
-        sendMessage(message);
-        textarea.value = '';
-      }
-    }
-  });
-  toggleButton.addEventListener('click', () => {
+  }
+});
+toggleButton.addEventListener('click', () => {
   const isOpening = !chatContainer.classList.contains('open');
 
+  // open / close widget
   chatContainer.classList.toggle('open');
 
-  // Run ONLY when opening
- if (isOpening && newConversationScreen && !welcomeDisabled) {
-    // reset everything
-    newConversationScreen.style.display = 'none';
+  // FIRST open only (per page load), and only if chat not started
+  if (isOpening && !hasOpenedOnce && !chatStarted) {
+    hasOpenedOnce = true;
+
+    // show loader
     welcomeLoader.style.display = 'block';
+
+    // make sure welcome is hidden initially
+    if (newConversationScreen) {
+      newConversationScreen.style.display = 'none';
+    }
 
     if (welcomeTimer) clearTimeout(welcomeTimer);
 
     welcomeTimer = setTimeout(() => {
+      if (chatStarted) return;
+
       welcomeLoader.style.display = 'none';
-      newConversationScreen.style.display = 'block';
+      if (newConversationScreen) {
+        newConversationScreen.style.display = 'block';
+      }
     }, 3000);
   }
 });
