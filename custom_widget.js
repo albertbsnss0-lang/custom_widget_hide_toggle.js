@@ -1,6 +1,10 @@
-// iClean AZ custom chat widget script (final version: custom initialization)
-// This script ensures that the custom widget always runs even if another
-// n8n chat widget script has already set `window.N8NChatWidgetInitialized`.
+// iClean AZ custom chat widget script (FULLY FIXED)
+// Fixes:
+// - Launcher stays bottom-right
+// - "Preparing..." + Welcome appear ONLY on first open (per page load)
+// - After clicking "Send us a message" (or sending first message), NO white screen
+// - Welcome/loader never appear again after chat starts
+// - Closing/reopening preserves conversation (only refresh resets)
 (function () {
   const styles = `
     .n8n-chat-widget {
@@ -10,17 +14,17 @@
       --chat--color-font: var(--n8n-chat-font-color, #0B1F3B);
       font-family: 'Poppins', sans-serif;
     }
-    /* Pulse animation for the launcher */
+
     @keyframes launcherPulse {
       0% { box-shadow: 0 10px 30px rgba(11, 31, 59, 0.35); }
       50% { box-shadow: 0 12px 36px rgba(11, 31, 59, 0.45); transform: translateY(-1px); }
       100% { box-shadow: 0 10px 30px rgba(11, 31, 59, 0.35); }
     }
-    /* Hide the launcher when the chat container is open */
+
     .n8n-chat-widget .chat-container.open + .chat-toggle {
       display: none !important;
     }
-    /* Chat container */
+
     .n8n-chat-widget .chat-container {
       position: fixed;
       bottom: 20px;
@@ -46,6 +50,7 @@
       display: flex;
       flex-direction: column;
     }
+
     @media (max-width: 600px) {
       .n8n-chat-widget .chat-container {
         width: 100%;
@@ -56,7 +61,7 @@
         border-radius: 0;
       }
     }
-    /* Header */
+
     .n8n-chat-widget .brand-header {
       padding: 16px;
       display: flex;
@@ -104,7 +109,7 @@
     .n8n-chat-widget .close-button:hover {
       opacity: 1;
     }
-    /* New conversation screen */
+
     .n8n-chat-widget .new-conversation {
       position: absolute;
       top: 50%;
@@ -141,7 +146,7 @@
       width: 20px;
       height: 20px;
     }
-    /* Chat interface */
+
     .n8n-chat-widget .chat-interface {
       display: none;
       flex-direction: column;
@@ -150,6 +155,7 @@
     .n8n-chat-widget .chat-interface.active {
       display: flex;
     }
+
     .n8n-chat-widget .chat-messages {
       flex: 1;
       overflow-y: auto;
@@ -178,17 +184,7 @@
       color: var(--chat--color-font);
       align-self: flex-start;
     }
-    .n8n-chat-widget .chat-message.bot button {
-      background: #F3F5F7;
-      border: 1px solid #D9DEE5;
-      color: var(--chat--color-font);
-      padding: 6px 12px;
-      border-radius: 8px;
-      margin-right: 8px;
-      margin-bottom: 4px;
-      font-size: 14px;
-      cursor: pointer;
-    }
+
     .n8n-chat-widget .chat-input {
       padding: 16px;
       border-top: 1px solid rgba(11, 31, 59, 0.1);
@@ -214,7 +210,7 @@
       cursor: pointer;
       font-size: 14px;
     }
-    /* Launcher */
+
     .n8n-chat-widget .chat-toggle {
       position: fixed;
       bottom: 20px !important;
@@ -292,15 +288,15 @@
     style: { ...defaultConfig.style, ...window.ChatWidgetConfig.style }
   } : defaultConfig;
 
-  // Use a custom flag to prevent duplicate initialization
+  // Prevent duplicate initialization
   if (window.CustomIcleanWidgetLoaded) return;
   window.CustomIcleanWidgetLoaded = true;
 
-let currentSessionId = '';
-let welcomeTimer = null;
-
-let hasOpenedOnce = false; // first open of widget per page load
-let chatStarted = false;   // user started chat (messages should show, welcome never again)
+  // State (persists until refresh)
+  let currentSessionId = '';
+  let welcomeTimer = null;
+  let hasOpenedOnce = false; // welcome/loader only on first open
+  let chatStarted = false;   // once true, never show welcome/loader again
 
   const widgetContainer = document.createElement('div');
   widgetContainer.className = 'n8n-chat-widget';
@@ -313,7 +309,7 @@ let chatStarted = false;   // user started chat (messages should show, welcome n
   chatContainer.className = `chat-container${config.style.position === 'left' ? ' position-left' : ''}`;
 
   const newConversationHTML = `
-    <div class="brand-header">
+    <div class="brand-header brand-header-welcome">
       <img src="${config.branding.logo}" alt="${config.branding.name}">
       <div class="title-block">
         <span class="brand-title">${config.branding.title || config.branding.name}</span>
@@ -335,7 +331,7 @@ let chatStarted = false;   // user started chat (messages should show, welcome n
 
   const chatInterfaceHTML = `
     <div class="chat-interface">
-      <div class="brand-header">
+      <div class="brand-header brand-header-chat">
         <img src="${config.branding.logo}" alt="${config.branding.name}">
         <div class="title-block">
           <span class="brand-title">${config.branding.title || config.branding.name}</span>
@@ -368,30 +364,36 @@ let chatStarted = false;   // user started chat (messages should show, welcome n
   widgetContainer.appendChild(toggleButton);
   document.body.appendChild(widgetContainer);
 
-const newChatBtn = chatContainer.querySelector('.new-chat-btn');
+  // Elements
+  const newChatBtn = chatContainer.querySelector('.new-chat-btn');
+  const newConversationScreen = chatContainer.querySelector('.new-conversation');
+  const welcomeHeader = chatContainer.querySelector('.brand-header-welcome');
 
-const newConversationScreen = chatContainer.querySelector('.new-conversation');
+  const chatInterface = chatContainer.querySelector('.chat-interface');
+  const messagesContainer = chatContainer.querySelector('.chat-messages');
+  const textarea = chatContainer.querySelector('textarea');
+  const sendButton = chatContainer.querySelector('button[type="submit"]');
 
-const welcomeLoader = document.createElement('div');
-welcomeLoader.style.textAlign = 'center';
-welcomeLoader.style.padding = '40px 20px';
-welcomeLoader.style.color = '#040559';
-welcomeLoader.style.fontSize = '16px';
-welcomeLoader.style.fontWeight = '500';
-welcomeLoader.textContent = 'Preparing your assistant...';
+  // Loader element
+  const welcomeLoader = document.createElement('div');
+  welcomeLoader.style.textAlign = 'center';
+  welcomeLoader.style.padding = '40px 20px';
+  welcomeLoader.style.color = '#040559';
+  welcomeLoader.style.fontSize = '16px';
+  welcomeLoader.style.fontWeight = '500';
+  welcomeLoader.textContent = 'Preparing your assistant...';
 
-chatContainer.insertBefore(welcomeLoader, newConversationScreen);
+  // Insert loader above welcome screen
+  if (newConversationScreen) {
+    chatContainer.insertBefore(welcomeLoader, newConversationScreen);
+  } else {
+    chatContainer.appendChild(welcomeLoader);
+  }
 
-// hide loader and welcome by default
-welcomeLoader.style.display = 'none';
-if (newConversationScreen) newConversationScreen.style.display = 'none';
-
-
-const chatInterface = chatContainer.querySelector('.chat-interface');
-const messagesContainer = chatContainer.querySelector('.chat-messages');
-const textarea = chatContainer.querySelector('textarea');
-const sendButton = chatContainer.querySelector('button[type="submit"]');
-
+  // Hide loader and welcome by default (they will show only on first open)
+  welcomeLoader.style.display = 'none';
+  if (newConversationScreen) newConversationScreen.style.display = 'none';
+  if (welcomeHeader) welcomeHeader.style.display = 'none';
 
   function generateUUID() {
     return crypto.randomUUID();
@@ -410,13 +412,37 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
     return typing;
   }
 
-  const observer = new MutationObserver(() => {
-    scrollToBottom();
-  });
+  // Keep scrolled
+  const observer = new MutationObserver(() => scrollToBottom());
   observer.observe(messagesContainer, { childList: true });
 
-  async function startNewConversation() {
+  function activateChatUI() {
+    // Ensure chat UI is visible
+    chatInterface.classList.add('active');
+  }
+
+  function removeWelcomeForever() {
+    // Stop timer
+    if (welcomeTimer) {
+      clearTimeout(welcomeTimer);
+      welcomeTimer = null;
+    }
+    // Remove welcome elements
+    if (newConversationScreen && newConversationScreen.parentElement) newConversationScreen.remove();
+    if (welcomeLoader && welcomeLoader.parentElement) welcomeLoader.remove();
+    if (welcomeHeader && welcomeHeader.parentElement) welcomeHeader.remove();
+  }
+
+  async function startNewConversationIfNeeded() {
+    // Do not create a new session if we already have one (preserve until refresh)
+    if (currentSessionId) {
+      activateChatUI();
+      return;
+    }
+
     currentSessionId = generateUUID();
+    activateChatUI();
+
     const payload = [
       {
         action: 'loadPreviousSession',
@@ -425,16 +451,16 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
         metadata: { userId: '' }
       }
     ];
+
     try {
       const response = await fetch(config.webhook.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
       const responseData = await response.json();
-      chatContainer.querySelector('.brand-header').style.display = 'none';
-      chatContainer.querySelector('.new-conversation').style.display = 'none';
-      chatInterface.classList.add('active');
+
       const botMsg = document.createElement('div');
       botMsg.className = 'chat-message bot';
       botMsg.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
@@ -446,6 +472,11 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
   }
 
   async function sendMessage(message) {
+    // Ensure session exists first
+    if (!currentSessionId) {
+      await startNewConversationIfNeeded();
+    }
+
     const payload = {
       action: 'sendMessage',
       sessionId: currentSessionId,
@@ -453,20 +484,28 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
       chatInput: message,
       metadata: { userId: '' }
     };
+
     const userMsg = document.createElement('div');
     userMsg.className = 'chat-message user';
     userMsg.textContent = message;
     messagesContainer.appendChild(userMsg);
     scrollToBottom();
+
     const typingIndicator = showTyping();
+
     try {
       const response = await fetch(config.webhook.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
       const data = await response.json();
-      messagesContainer.removeChild(typingIndicator);
+
+      if (typingIndicator.parentElement) {
+        messagesContainer.removeChild(typingIndicator);
+      }
+
       const botMsg = document.createElement('div');
       botMsg.className = 'chat-message bot';
       botMsg.textContent = Array.isArray(data) ? data[0].output : data.output;
@@ -480,102 +519,110 @@ const sendButton = chatContainer.querySelector('button[type="submit"]');
     }
   }
 
-newChatBtn.addEventListener('click', () => {
-  chatStarted = true;
+  // Welcome button → start chat, remove welcome forever, show chat UI, start session (once)
+  newChatBtn.addEventListener('click', async () => {
+    chatStarted = true;
+    removeWelcomeForever();
+    activateChatUI();
 
-  if (welcomeTimer) clearTimeout(welcomeTimer);
-  if (newConversationScreen) newConversationScreen.remove();
-  if (welcomeLoader) welcomeLoader.remove();
+    if (!chatContainer.classList.contains('open')) {
+      chatContainer.classList.add('open');
+    }
 
-  // SHOW chat UI (this fixes the white screen)
-  chatInterface.style.display = 'flex';
+    await startNewConversationIfNeeded();
+  });
 
-  if (!chatContainer.classList.contains('open')) {
-    chatContainer.classList.add('open');
-  }
-
-  startNewConversation();
-});
-
-  sendButton.addEventListener('click', () => {
-  const message = textarea.value.trim();
-  if (message) {
-
-    // first real interaction
-   // first real interaction
-if (!chatStarted) {
-  chatStarted = true;
-
-  if (welcomeTimer) clearTimeout(welcomeTimer);
-  if (newConversationScreen) newConversationScreen.remove();
-  if (welcomeLoader) welcomeLoader.remove();
-
-  // SHOW the chat UI (fixes white screen)
-  console.log('chatInterface:', chatInterface);
-
-if (chatInterface) {
-  chatInterface.style.display = 'flex';
-} else {
-  console.error('❌ chatInterface is NULL');
-}
-
-}
-});
- textarea.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-
+  // Send button
+  sendButton.addEventListener('click', async () => {
     const message = textarea.value.trim();
-    if (message) {
+    if (!message) return;
 
-      // first real interaction via Enter
+    if (!chatStarted) {
+      chatStarted = true;
+      removeWelcomeForever();
+      activateChatUI();
+    }
+
+    await sendMessage(message);
+    textarea.value = '';
+  });
+
+  // Enter to send
+  textarea.addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+
+      const message = textarea.value.trim();
+      if (!message) return;
+
       if (!chatStarted) {
         chatStarted = true;
-
-        if (welcomeTimer) clearTimeout(welcomeTimer);
-        if (newConversationScreen) newConversationScreen.remove();
-        if (welcomeLoader) welcomeLoader.remove();
+        removeWelcomeForever();
+        activateChatUI();
       }
 
-      sendMessage(message);
+      await sendMessage(message);
       textarea.value = '';
     }
-  }
-});
-toggleButton.addEventListener('click', () => {
-  const isOpening = !chatContainer.classList.contains('open');
+  });
 
-  // open / close widget
-  chatContainer.classList.toggle('open');
+  // Launcher toggle (welcome/loader only on first open)
+  toggleButton.addEventListener('click', () => {
+    const isOpening = !chatContainer.classList.contains('open');
 
-  // FIRST open only (per page load), and only if chat not started
-  if (isOpening && !hasOpenedOnce && !chatStarted) {
-    hasOpenedOnce = true;
+    // open / close
+    chatContainer.classList.toggle('open');
 
-    // show loader
-    welcomeLoader.style.display = 'block';
+    if (!isOpening) return;
 
-    // make sure welcome is hidden initially
-    if (newConversationScreen) {
-      newConversationScreen.style.display = 'none';
+    // If chat already started, ensure chat UI is active and never show welcome again
+    if (chatStarted) {
+      activateChatUI();
+      return;
     }
 
-    if (welcomeTimer) clearTimeout(welcomeTimer);
+    // FIRST open only
+    if (!hasOpenedOnce) {
+      hasOpenedOnce = true;
 
-    welcomeTimer = setTimeout(() => {
-      if (chatStarted) return;
+      // show loader
+      welcomeLoader.style.display = 'block';
 
+      // hide welcome initially
+      if (newConversationScreen) newConversationScreen.style.display = 'none';
+      if (welcomeHeader) welcomeHeader.style.display = 'none';
+
+      if (welcomeTimer) clearTimeout(welcomeTimer);
+
+      welcomeTimer = setTimeout(() => {
+        // If chat started during timer, do nothing
+        if (chatStarted) return;
+
+        // hide loader, show welcome
+        welcomeLoader.style.display = 'none';
+        if (welcomeHeader) welcomeHeader.style.display = 'flex';
+        if (newConversationScreen) newConversationScreen.style.display = 'block';
+      }, 3000);
+    } else {
+      // After first open, do NOT show welcome again (your requirement)
+      // Ensure loader hidden
       welcomeLoader.style.display = 'none';
-      if (newConversationScreen) {
-        newConversationScreen.style.display = 'block';
-      }
-    }, 3000);
-  }
-});
-
- chatContainer.querySelectorAll('.close-button').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    chatContainer.classList.remove('open');
+      if (welcomeHeader) welcomeHeader.style.display = 'none';
+      if (newConversationScreen) newConversationScreen.style.display = 'none';
+    }
   });
-});
+
+  // Close buttons just close; do not reset session or messages
+  chatContainer.querySelectorAll('.close-button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      chatContainer.classList.remove('open');
+
+      // If chat not started, also hide welcome/loader so reopen doesn't show them again
+      if (!chatStarted) {
+        welcomeLoader.style.display = 'none';
+        if (welcomeHeader) welcomeHeader.style.display = 'none';
+        if (newConversationScreen) newConversationScreen.style.display = 'none';
+      }
+    });
+  });
 })();
