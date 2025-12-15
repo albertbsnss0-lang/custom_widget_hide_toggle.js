@@ -543,8 +543,9 @@
       activateChatUI();
     }
 
-    await sendMessage(message);
+    // Clear the textarea immediately on send
     textarea.value = '';
+    await sendMessage(message);
   });
 
   // Enter to send
@@ -561,8 +562,9 @@
         activateChatUI();
       }
 
-      await sendMessage(message);
+      // Clear the textarea immediately on send
       textarea.value = '';
+      await sendMessage(message);
     }
   });
 
