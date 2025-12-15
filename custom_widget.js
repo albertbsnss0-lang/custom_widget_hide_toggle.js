@@ -543,11 +543,17 @@
       activateChatUI();
     }
 
+    // Define a helper to clear the textarea and dispatch an input event
+    const clearInput = () => {
+      textarea.value = '';
+      textarea.dispatchEvent(new Event('input'));
+    };
     // Clear the textarea immediately on send
-    textarea.value = '';
-    // Dispatch input event to update UI if any frameworks are listening
-    textarea.dispatchEvent(new Event('input'));
+    clearInput();
+    // Send the message
     await sendMessage(message);
+    // Clear again after send in case the framework reverts it
+    clearInput();
   });
 
   // Enter to send
@@ -564,11 +570,17 @@
         activateChatUI();
       }
 
+      // Define a helper to clear the textarea and dispatch an input event
+      const clearInput = () => {
+        textarea.value = '';
+        textarea.dispatchEvent(new Event('input'));
+      };
       // Clear the textarea immediately on send
-      textarea.value = '';
-      // Dispatch input event to update UI if any frameworks are listening
-      textarea.dispatchEvent(new Event('input'));
+      clearInput();
+      // Send the message
       await sendMessage(message);
+      // Clear again after send in case the framework reverts it
+      clearInput();
     }
   });
 
