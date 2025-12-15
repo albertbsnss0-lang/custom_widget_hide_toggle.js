@@ -545,6 +545,8 @@
 
     // Clear the textarea immediately on send
     textarea.value = '';
+    // Dispatch input event to update UI if any frameworks are listening
+    textarea.dispatchEvent(new Event('input'));
     await sendMessage(message);
   });
 
@@ -564,6 +566,8 @@
 
       // Clear the textarea immediately on send
       textarea.value = '';
+      // Dispatch input event to update UI if any frameworks are listening
+      textarea.dispatchEvent(new Event('input'));
       await sendMessage(message);
     }
   });
