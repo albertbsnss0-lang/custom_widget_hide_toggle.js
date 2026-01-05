@@ -552,7 +552,7 @@
       metadata: { userId: '' }
     };
 
-    const typingIndicator = showTyping();
+    const typingIndicator = null;
 
     try {
       const response = await fetch(config.webhook.url, {
@@ -562,11 +562,7 @@
       });
 
       const data = await response.json();
-
-      // Remove typing indicator
-      if (typingIndicator.parentElement) {
-        messagesContainer.removeChild(typingIndicator);
-      }
+      
 
       // Append bot's greeting
       const botMsg = document.createElement('div');
