@@ -399,8 +399,8 @@
   }
 
   function renderInitialBotMessage() {
-  // Prevent duplicate greeting
-  if (messagesContainer.children.length > 0) return;
+  if (initialGreetingSent) return;
+  initialGreetingSent = true;
 
   const botMsg = document.createElement('div');
   botMsg.className = 'chat-message bot';
@@ -409,7 +409,7 @@
 
   messagesContainer.appendChild(botMsg);
   scrollToBottom();
-  }
+}
 
   function showTyping() {
     const typing = document.createElement('div');
