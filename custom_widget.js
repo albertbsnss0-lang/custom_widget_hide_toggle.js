@@ -289,9 +289,7 @@
   let currentSessionId = '';
   let welcomeTimer = null;
   let hasOpenedOnce = false; // welcome/loader only on first open
-  let chatStarted = false; 
-  let isFirstUserMessage = true;
-  // once true, never show welcome/loader again
+  let chatStarted = false;   // once true, never show welcome/loader again
   // Flag to ensure the initial greeting is sent only once per page load
   let initialGreetingSent = false;
 
@@ -399,7 +397,7 @@
   function scrollToBottom() {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
-  
+
   function renderInitialBotMessage() {
   // Prevent duplicate greeting
   if (messagesContainer.children.length > 0) return;
@@ -411,8 +409,7 @@
 
   messagesContainer.appendChild(botMsg);
   scrollToBottom();
-}
-
+  }
 
   function showTyping() {
     const typing = document.createElement('div');
@@ -502,11 +499,7 @@
     messagesContainer.appendChild(userMsg);
     scrollToBottom();
 
-    let typingIndicator = null;
-
-  if (!isFirstUserMessage) {
-  typingIndicator = showTyping();
-  }
+    const typingIndicator = showTyping();
 
     try {
       const response = await fetch(config.webhook.url, {
@@ -526,8 +519,6 @@
       botMsg.textContent = Array.isArray(data) ? data[0].output : data.output;
       messagesContainer.appendChild(botMsg);
       scrollToBottom();
-
-      isFirstUserMessage = false;
     } catch (err) {
       console.error('Error sending message:', err);
       if (typingIndicator.parentElement) {
@@ -597,7 +588,6 @@
     removeWelcomeForever();
     activateChatUI();
     renderInitialBotMessage();
-    
 
     if (!chatContainer.classList.contains('open')) {
       chatContainer.classList.add('open');
@@ -674,11 +664,11 @@
     if (!isOpening) return;
 
     // If chat already started, ensure chat UI is active and never show welcome again
-   if (chatStarted) {
-  activateChatUI();
-  renderInitialBotMessage();
-  return;
-}
+    if (chatStarted) {
+    activateChatUI();
+    renderInitialBotMessage();
+    return;
+    }
 
     // FIRST open only
     if (!hasOpenedOnce) {
@@ -712,12 +702,12 @@
 
     // Automatically start a session and send the initial greeting
     // if the chat has not been started and the greeting hasn't been sent yet.
-  if (!chatStarted) {
-  chatStarted = true;
-  removeWelcomeForever();
-  activateChatUI();
-  renderInitialBotMessage();
-}
+    if (!chatStarted) {
+    chatStarted = true;
+    removeWelcomeForever();
+    activateChatUI();
+    renderInitialBotMessage();
+    }
   });
 
   // Close buttons just close; do not reset session or messages
