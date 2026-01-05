@@ -289,7 +289,9 @@
   let currentSessionId = '';
   let welcomeTimer = null;
   let hasOpenedOnce = false; // welcome/loader only on first open
-  let chatStarted = false;   // once true, never show welcome/loader again
+  let chatStarted = false; 
+  let isFirstUserMessage = true;
+  // once true, never show welcome/loader again
   // Flag to ensure the initial greeting is sent only once per page load
   let initialGreetingSent = false;
 
@@ -500,7 +502,11 @@
     messagesContainer.appendChild(userMsg);
     scrollToBottom();
 
-    const typingIndicator = showTyping();
+    let typingIndicator = null;
+
+  if (!isFirstUserMessage) {
+  typingIndicator = showTyping();
+  }
 
     try {
       const response = await fetch(config.webhook.url, {
@@ -520,6 +526,8 @@
       botMsg.textContent = Array.isArray(data) ? data[0].output : data.output;
       messagesContainer.appendChild(botMsg);
       scrollToBottom();
+
+      isFirstUserMessage = false;
     } catch (err) {
       console.error('Error sending message:', err);
       if (typingIndicator.parentElement) {
