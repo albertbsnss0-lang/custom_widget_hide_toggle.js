@@ -291,7 +291,6 @@
   let hasOpenedOnce = false; // welcome/loader only on first open
   let chatStarted = false;   // once true, never show welcome/loader again
   // Flag to ensure the initial greeting is sent only once per page load
-  let initialGreetingSent = false;
   let isInitialMessage = true;
 
   const widgetContainer = document.createElement('div');
@@ -545,12 +544,7 @@ if (!isInitialMessage) {
    * bot's response, so the greeting appears without the user having
    * to type anything.
    */
-  async function sendInitialMessage() {
-    // Ensure a session exists
-    if (!currentSessionId) {
-      await startNewConversationIfNeeded();
-    }
-
+ 
     // Use a dummy initial input (e.g. "Hi") to trigger the backend's greeting logic.
     // Avoid rendering this in the UI by not creating a user bubble.
     const payload = {
@@ -605,9 +599,6 @@ if (!isInitialMessage) {
 
     await startNewConversationIfNeeded();
     // Automatically send the initial greeting if no messages have been added yet
-    if (messagesContainer.children.length === 0) {
-      await sendInitialMessage();
-    }
   });
 
   // Send button
