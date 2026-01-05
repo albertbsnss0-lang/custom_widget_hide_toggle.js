@@ -534,55 +534,6 @@
     }
   }
 
-  /**
-   * Send an initial message automatically once the chat is opened.
-   *
-   * This helper sends a request to the webhook using the same
-   * "sendMessage" action as regular messages but does not
-   * render a user bubble in the conversation. It displays only the
-   * bot's response, so the greeting appears without the user having
-   * to type anything.
-   */
-    // Use a dummy initial input (e.g. "Hi") to trigger the backend's greeting logic.
-    // Avoid rendering this in the UI by not creating a user bubble.
-    const payload = {
-      action: 'sendMessage',
-      sessionId: currentSessionId,
-      route: config.webhook.route,
-      chatInput: 'Hi',
-      metadata: { userId: '' }
-    };
-
-    const typingIndicator = showTyping();
-
-    try {
-      const response = await fetch(config.webhook.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-
-      // Remove typing indicator
-      if (typingIndicator.parentElement) {
-        messagesContainer.removeChild(typingIndicator);
-      }
-
-      // Append bot's greeting
-      const botMsg = document.createElement('div');
-      botMsg.className = 'chat-message bot';
-      botMsg.textContent = Array.isArray(data) ? data[0].output : data.output;
-      messagesContainer.appendChild(botMsg);
-      scrollToBottom();
-    } catch (err) {
-      console.error('Error sending initial message:', err);
-      if (typingIndicator.parentElement) {
-        messagesContainer.removeChild(typingIndicator);
-      }
-    }
-  }
-
   // Welcome button → start chat, remove welcome forever, show chat UI, start session (once)
   newChatBtn.addEventListener('click', async () => {
     chatStarted = true;
