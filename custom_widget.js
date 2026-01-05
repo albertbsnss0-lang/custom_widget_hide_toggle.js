@@ -1,5 +1,5 @@
-(function () {
-  const styles = `
+function () {
+  const styles = 
     .n8n-chat-widget {
       --chat--color-primary: var(--n8n-chat-primary-color, #0B1F3B);
       --chat--color-secondary: var(--n8n-chat-secondary-color, #0B1F3B);
@@ -255,7 +255,7 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
       pointer-events: none;
     }
-  `;
+  ;
 
   // Load Poppins font
   const fontLink = document.createElement('link');
@@ -301,9 +301,9 @@
   widgetContainer.style.setProperty('--n8n-chat-font-color', config.style.fontColor);
 
   const chatContainer = document.createElement('div');
-  chatContainer.className = `chat-container${config.style.position === 'left' ? ' position-left' : ''}`;
+  chatContainer.className = chat-container${config.style.position === 'left' ? ' position-left' : ''};
 
-  const newConversationHTML = `
+  const newConversationHTML = 
     <div class="brand-header brand-header-welcome">
       <img src="${config.branding.logo}" alt="${config.branding.name}">
       <div class="title-block">
@@ -322,9 +322,9 @@
       </button>
       <p class="response-text">${config.branding.responseTimeText}</p>
     </div>
-  `;
+  ;
 
-  const chatInterfaceHTML = `
+  const chatInterfaceHTML = 
     <div class="chat-interface">
       <div class="brand-header brand-header-chat">
         <img src="${config.branding.logo}" alt="${config.branding.name}">
@@ -341,19 +341,19 @@
       </div>
       <div class="chat-footer"></div>
     </div>
-  `;
+  ;
 
   chatContainer.innerHTML = newConversationHTML + chatInterfaceHTML;
 
   const toggleButton = document.createElement('button');
-  toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
-  toggleButton.innerHTML = `
+  toggleButton.className = chat-toggle${config.style.position === 'left' ? ' position-left' : ''};
+  toggleButton.innerHTML = 
     <span class="launcher-badge">Online</span>
     <svg class="launcher-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
       <path d="M12 2C6.477 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2.5 21.5l4.5-.838A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" />
     </svg>
     <span class="launcher-text">Get a Free Quote</span>
-  `;
+  ;
 
   widgetContainer.appendChild(chatContainer);
   widgetContainer.appendChild(toggleButton);
