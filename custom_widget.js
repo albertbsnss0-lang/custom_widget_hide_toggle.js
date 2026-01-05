@@ -292,7 +292,6 @@
   let chatStarted = false;   // once true, never show welcome/loader again
   let isFirstUserMessage = true;
   // Flag to ensure the initial greeting is sent only once per page load
-  let initialGreetingSent = false;
 
   const widgetContainer = document.createElement('div');
   widgetContainer.className = 'n8n-chat-widget';
@@ -544,12 +543,6 @@
    * bot's response, so the greeting appears without the user having
    * to type anything.
    */
-  async function sendInitialMessage() {
-    // Ensure a session exists
-    if (!currentSessionId) {
-      await startNewConversationIfNeeded();
-    }
-
     // Use a dummy initial input (e.g. "Hi") to trigger the backend's greeting logic.
     // Avoid rendering this in the UI by not creating a user bubble.
     const payload = {
@@ -594,18 +587,16 @@
   newChatBtn.addEventListener('click', async () => {
     chatStarted = true;
     removeWelcomeForever();
-    activateChatUI();
-    renderInitialBotMessage();
+ activateChatUI();
+renderInitialBotMessage();
 
-    if (!chatContainer.classList.contains('open')) {
-      chatContainer.classList.add('open');
-    }
+if (!chatContainer.classList.contains('open')) {
+  chatContainer.classList.add('open');
+}
 
-    await startNewConversationIfNeeded();
-    // Automatically send the initial greeting if no messages have been added yet
-    if (messagesContainer.children.length === 0) {
-      await sendInitialMessage();
-    }
+// ❌ DO NOT start backend here
+
+    
   });
 
   // Send button
