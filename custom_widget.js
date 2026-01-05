@@ -397,6 +397,19 @@
   function scrollToBottom() {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
+  
+  function renderInitialBotMessage() {
+  // Prevent duplicate greeting
+  if (messagesContainer.children.length > 0) return;
+
+  const botMsg = document.createElement('div');
+  botMsg.className = 'chat-message bot';
+  botMsg.textContent =
+    "Hi there! I’m the virtual assistant of iCLEAN AZ. How can I help you today?";
+
+  messagesContainer.appendChild(botMsg);
+  scrollToBottom();
+}
 
   function showTyping() {
     const typing = document.createElement('div');
@@ -574,6 +587,7 @@
     chatStarted = true;
     removeWelcomeForever();
     activateChatUI();
+    renderInitialBotMessage();
 
     if (!chatContainer.classList.contains('open')) {
       chatContainer.classList.add('open');
@@ -650,10 +664,11 @@
     if (!isOpening) return;
 
     // If chat already started, ensure chat UI is active and never show welcome again
-    if (chatStarted) {
-      activateChatUI();
-      return;
-    }
+   if (chatStarted) {
+  activateChatUI();
+  renderInitialBotMessage();
+  return;
+}
 
     // FIRST open only
     if (!hasOpenedOnce) {
@@ -687,14 +702,12 @@
 
     // Automatically start a session and send the initial greeting
     // if the chat has not been started and the greeting hasn't been sent yet.
-    if (!chatStarted && !initialGreetingSent) {
-      chatStarted = true;
-      removeWelcomeForever();
-      activateChatUI();
-      await startNewConversationIfNeeded();
-      await sendInitialMessage();
-      initialGreetingSent = true;
-    }
+   if (!chatStarted) {
+  chatStarted = true;
+  removeWelcomeForever();
+  activateChatUI();
+  renderInitialBotMessage();
+}
   });
 
   // Close buttons just close; do not reset session or messages
