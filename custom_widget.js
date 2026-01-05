@@ -292,6 +292,7 @@
   let chatStarted = false;   // once true, never show welcome/loader again
   // Flag to ensure the initial greeting is sent only once per page load
   let initialGreetingSent = false;
+  let isInitialMessage = true;
 
   const widgetContainer = document.createElement('div');
   widgetContainer.className = 'n8n-chat-widget';
@@ -500,7 +501,12 @@
     messagesContainer.appendChild(userMsg);
     scrollToBottom();
 
-    const typingIndicator = showTyping();
+   let typingIndicator = null;
+
+if (!isInitialMessage) {
+  typingIndicator = showTyping();
+}
+
 
     try {
       const response = await fetch(config.webhook.url, {
@@ -511,19 +517,21 @@
 
       const data = await response.json();
 
-      if (typingIndicator.parentElement) {
-        messagesContainer.removeChild(typingIndicator);
-      }
+      if (typingIndicator && typingIndicator.parentElement) {
+  messagesContainer.removeChild(typingIndicator);
+}
 
       const botMsg = document.createElement('div');
       botMsg.className = 'chat-message bot';
       botMsg.textContent = Array.isArray(data) ? data[0].output : data.output;
       messagesContainer.appendChild(botMsg);
       scrollToBottom();
+
+      isInitialMessage = false;
     } catch (err) {
       console.error('Error sending message:', err);
-      if (typingIndicator.parentElement) {
-        messagesContainer.removeChild(typingIndicator);
+     if (typingIndicator && typingIndicator.parentElement) {
+  messagesContainer.removeChild(typingIndicator);
       }
     }
   }
