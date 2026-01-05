@@ -467,13 +467,8 @@
         body: JSON.stringify(payload)
       });
 
-      const responseData = await response.json();
+      await response.json(); // consume response, do nothing with UI
 
-      const botMsg = document.createElement('div');
-      botMsg.className = 'chat-message bot';
-      botMsg.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
-      messagesContainer.appendChild(botMsg);
-      scrollToBottom();
     } catch (err) {
       console.error('Error starting conversation:', err);
     }
