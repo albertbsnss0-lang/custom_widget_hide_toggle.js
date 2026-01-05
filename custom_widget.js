@@ -290,6 +290,8 @@
   let welcomeTimer = null;
   let hasOpenedOnce = false; // welcome/loader only on first open
   let chatStarted = false;   // once true, never show welcome/loader again
+  // Flag to ensure the initial greeting is sent only once per page load
+  let initialGreetingSent = false;
 
   const widgetContainer = document.createElement('div');
   widgetContainer.className = 'n8n-chat-widget';
@@ -527,11 +529,13 @@
       await startNewConversationIfNeeded();
     }
 
+    // Use a dummy initial input (e.g. "Hi") to trigger the backend's greeting logic.
+    // Avoid rendering this in the UI by not creating a user bubble.
     const payload = {
       action: 'sendMessage',
       sessionId: currentSessionId,
       route: config.webhook.route,
-      chatInput: '',
+      chatInput: 'Hi',
       metadata: { userId: '' }
     };
 
@@ -635,7 +639,9 @@
   });
 
   // Launcher toggle (welcome/loader only on first open)
-  toggleButton.addEventListener('click', () => {
+  // Modify the launcher click handler to be async so we can await
+  // functions and automatically send the initial greeting when needed.
+  toggleButton.addEventListener('click', async () => {
     const isOpening = !chatContainer.classList.contains('open');
 
     // open / close
@@ -677,6 +683,17 @@
       welcomeLoader.style.display = 'none';
       if (welcomeHeader) welcomeHeader.style.display = 'none';
       if (newConversationScreen) newConversationScreen.style.display = 'none';
+    }
+
+    // Automatically start a session and send the initial greeting
+    // if the chat has not been started and the greeting hasn't been sent yet.
+    if (!chatStarted && !initialGreetingSent) {
+      chatStarted = true;
+      removeWelcomeForever();
+      activateChatUI();
+      await startNewConversationIfNeeded();
+      await sendInitialMessage();
+      initialGreetingSent = true;
     }
   });
 
