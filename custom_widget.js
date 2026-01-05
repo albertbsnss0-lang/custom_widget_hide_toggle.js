@@ -1,5 +1,12 @@
-function () {
-  const styles = 
+// iClean AZ custom chat widget script (FULLY FIXED)
+// Fixes:
+// - Launcher stays bottom-right
+// - "Preparing..." + Welcome appear ONLY on first open (per page load)
+// - After clicking "Send us a message" (or sending first message), NO white screen
+// - Welcome/loader never appear again after chat starts
+// - Closing/reopening preserves conversation (only refresh resets)
+(function () {
+  const styles = `
     .n8n-chat-widget {
       --chat--color-primary: var(--n8n-chat-primary-color, #0B1F3B);
       --chat--color-secondary: var(--n8n-chat-secondary-color, #0B1F3B);
@@ -255,7 +262,7 @@ function () {
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
       pointer-events: none;
     }
-  ;
+  `;
 
   // Load Poppins font
   const fontLink = document.createElement('link');
@@ -290,8 +297,6 @@ function () {
   let welcomeTimer = null;
   let hasOpenedOnce = false; // welcome/loader only on first open
   let chatStarted = false;   // once true, never show welcome/loader again
-  // Flag to ensure the initial greeting is sent only once per page load
-  let initialGreetingSent = false;
 
   const widgetContainer = document.createElement('div');
   widgetContainer.className = 'n8n-chat-widget';
@@ -301,9 +306,9 @@ function () {
   widgetContainer.style.setProperty('--n8n-chat-font-color', config.style.fontColor);
 
   const chatContainer = document.createElement('div');
-  chatContainer.className = chat-container${config.style.position === 'left' ? ' position-left' : ''};
+  chatContainer.className = `chat-container${config.style.position === 'left' ? ' position-left' : ''}`;
 
-  const newConversationHTML = 
+  const newConversationHTML = `
     <div class="brand-header brand-header-welcome">
       <img src="${config.branding.logo}" alt="${config.branding.name}">
       <div class="title-block">
@@ -322,9 +327,9 @@ function () {
       </button>
       <p class="response-text">${config.branding.responseTimeText}</p>
     </div>
-  ;
+  `;
 
-  const chatInterfaceHTML = 
+  const chatInterfaceHTML = `
     <div class="chat-interface">
       <div class="brand-header brand-header-chat">
         <img src="${config.branding.logo}" alt="${config.branding.name}">
@@ -341,19 +346,19 @@ function () {
       </div>
       <div class="chat-footer"></div>
     </div>
-  ;
+  `;
 
   chatContainer.innerHTML = newConversationHTML + chatInterfaceHTML;
 
   const toggleButton = document.createElement('button');
-  toggleButton.className = chat-toggle${config.style.position === 'left' ? ' position-left' : ''};
-  toggleButton.innerHTML = 
+  toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
+  toggleButton.innerHTML = `
     <span class="launcher-badge">Online</span>
     <svg class="launcher-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
       <path d="M12 2C6.477 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2.5 21.5l4.5-.838A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" />
     </svg>
     <span class="launcher-text">Get a Free Quote</span>
-  ;
+  `;
 
   widgetContainer.appendChild(chatContainer);
   widgetContainer.appendChild(toggleButton);
@@ -397,20 +402,6 @@ function () {
   function scrollToBottom() {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
-  
-  function renderInitialBotMessage() {
-  // Prevent duplicate greeting
-  if (messagesContainer.children.length > 0) return;
-
-  const botMsg = document.createElement('div');
-  botMsg.className = 'chat-message bot';
-  botMsg.textContent =
-    "Hi there! I’m the virtual assistant of iCLEAN AZ. How can I help you today?";
-
-  messagesContainer.appendChild(botMsg);
-  scrollToBottom();
-}
-
 
   function showTyping() {
     const typing = document.createElement('div');
@@ -528,78 +519,17 @@ function () {
     }
   }
 
-  /**
-   * Send an initial message automatically once the chat is opened.
-   *
-   * This helper sends a request to the webhook using the same
-   * "sendMessage" action as regular messages but does not
-   * render a user bubble in the conversation. It displays only the
-   * bot's response, so the greeting appears without the user having
-   * to type anything.
-   */
-  async function sendInitialMessage() {
-    // Ensure a session exists
-    if (!currentSessionId) {
-      await startNewConversationIfNeeded();
-    }
-
-    // Use a dummy initial input (e.g. "Hi") to trigger the backend's greeting logic.
-    // Avoid rendering this in the UI by not creating a user bubble.
-    const payload = {
-      action: 'sendMessage',
-      sessionId: currentSessionId,
-      route: config.webhook.route,
-      chatInput: 'Hi',
-      metadata: { userId: '' }
-    };
-
-    const typingIndicator = showTyping();
-
-    try {
-      const response = await fetch(config.webhook.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-
-      // Remove typing indicator
-      if (typingIndicator.parentElement) {
-        messagesContainer.removeChild(typingIndicator);
-      }
-
-      // Append bot's greeting
-      const botMsg = document.createElement('div');
-      botMsg.className = 'chat-message bot';
-      botMsg.textContent = Array.isArray(data) ? data[0].output : data.output;
-      messagesContainer.appendChild(botMsg);
-      scrollToBottom();
-    } catch (err) {
-      console.error('Error sending initial message:', err);
-      if (typingIndicator.parentElement) {
-        messagesContainer.removeChild(typingIndicator);
-      }
-    }
-  }
-
   // Welcome button → start chat, remove welcome forever, show chat UI, start session (once)
   newChatBtn.addEventListener('click', async () => {
     chatStarted = true;
     removeWelcomeForever();
     activateChatUI();
-    renderInitialBotMessage();
-    
 
     if (!chatContainer.classList.contains('open')) {
       chatContainer.classList.add('open');
     }
 
     await startNewConversationIfNeeded();
-    // Automatically send the initial greeting if no messages have been added yet
-    if (messagesContainer.children.length === 0) {
-      await sendInitialMessage();
-    }
   });
 
   // Send button
@@ -655,9 +585,7 @@ function () {
   });
 
   // Launcher toggle (welcome/loader only on first open)
-  // Modify the launcher click handler to be async so we can await
-  // functions and automatically send the initial greeting when needed.
-  toggleButton.addEventListener('click', async () => {
+  toggleButton.addEventListener('click', () => {
     const isOpening = !chatContainer.classList.contains('open');
 
     // open / close
@@ -666,11 +594,10 @@ function () {
     if (!isOpening) return;
 
     // If chat already started, ensure chat UI is active and never show welcome again
-   if (chatStarted) {
-  activateChatUI();
-  renderInitialBotMessage();
-  return;
-}
+    if (chatStarted) {
+      activateChatUI();
+      return;
+    }
 
     // FIRST open only
     if (!hasOpenedOnce) {
@@ -701,15 +628,6 @@ function () {
       if (welcomeHeader) welcomeHeader.style.display = 'none';
       if (newConversationScreen) newConversationScreen.style.display = 'none';
     }
-
-    // Automatically start a session and send the initial greeting
-    // if the chat has not been started and the greeting hasn't been sent yet.
-  if (!chatStarted) {
-  chatStarted = true;
-  removeWelcomeForever();
-  activateChatUI();
-  renderInitialBotMessage();
-}
   });
 
   // Close buttons just close; do not reset session or messages
